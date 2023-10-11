@@ -3,7 +3,8 @@ const Contact = require("../models/contactModel");
 exports.getContact = async(req,res)=>{
     
     try{
-        const contact = await Contact.find();
+
+        const contact = await Contact.find({user_id:req.user.id});
 
         res.status(200).json({
             success:true,
@@ -33,7 +34,8 @@ exports.createContact = async(req,res)=>{
     const createContact = await Contact.create({
         name,
         email,
-        phone
+        phone,
+        user_id:req.user.id
 
     });
      // console.log("The request body",req.body);
@@ -53,12 +55,32 @@ exports.createContact = async(req,res)=>{
   }
 }
 exports.updateContact = async(req,res)=>{
-    // res.send("Get all Conatcts")
+   
    try{
-    res.status(200).json({
-        success:true,
-        message:`Update Contact ${req.params.id}`
-    })
+    const id = req.params.id;
+
+    const findContact = await Contact.findById(id);
+    if(!findContact){
+        return res.status(404).json({
+            success:false,
+            message:"Contact Not Found"
+        })
+    }
+
+    if(findContact.user_id.toString() != req.user.id){
+        res.status(403).json({
+            message:"User don't have permission to update other user conatcts"
+        })
+    }
+    const conatctUpdate = await Contact.findByIdAndUpdate(id,req.body,{new:true})
+    if(conatctUpdate){
+            return res.status(200).json({
+                success:true,
+                message:`Update Contact ${req.params.id}`,
+                data:conatctUpdate
+            })
+    }
+    
 }
    catch(err){
     return res.status(500).json({
@@ -71,7 +93,22 @@ exports.deleteContact = async(req,res)=>{
     // res.send("Get all Conatcts")
 try{
 
-    
+    const id = req.params.id;
+
+    const findContact = await Contact.findById(id);
+    if(!findContact){
+        return res.status(404).json({
+            success:false,
+            message:"Contact Not Found"
+        })
+    }
+    if(findContact.user_id.toString() != req.user.id){
+        res.status(403).json({
+            message:"User don't have permission to Delete other user conatcts"
+        })
+    }
+
+    const conatctDelete = await Contact.findByIdAndDelete(id);
     res.status(200).json({
         success:true,
         message:`Delete Contact ${req.params.id}`
